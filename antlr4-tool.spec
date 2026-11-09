@@ -18,6 +18,10 @@ BuildRequires:	antlr-runtime
 BuildRequires:	stringtemplate4 >= 4.3.4
 BuildRequires:	sysjar
 
+# build-classpath belongs to javapackages-tools, which is not installed
+# in this build root. These are the jars the BuildRequires above install.
+%global dep_cp %{_javadir}/antlr4-runtime.jar:%{_javadir}/antlr-runtime.jar:%{_javadir}/ST4.jar
+
 %description
 ANTLR 4 reads a grammar and generates a parser. This is the tool.
 The runtime is the antlr4 package. UnicodeDataTemplateController is
@@ -43,7 +47,7 @@ export PATH=$JAVA_HOME/bin:$PATH
 find org -name '*.java' > sources.list
 mkdir -p classes
 javac --release 11 -encoding UTF-8 \
-	-cp "$(build-classpath antlr4-runtime antlr-runtime ST4)" \
+	-cp "%{dep_cp}" \
 	-d classes @sources.list
 find org \( -name '*.stg' -o -name '*.st' \) > resources.list
 jar cf %{name}.jar -C classes .
@@ -98,7 +102,7 @@ END
 # working directory. The output is then check/out/HelloParser.java.
 (
 	cd check
-	java -cp ../%{name}.jar:"$(build-classpath antlr4-runtime antlr-runtime ST4)" \
+	java -cp ../%{name}.jar:%{dep_cp} \
 		org.antlr.v4.Tool -o out Hello.g4
 )
 test -s check/out/HelloParser.java
@@ -112,7 +116,7 @@ sysjar install --buildroot %{buildroot} \
 install -d %{buildroot}%{_bindir}
 cat > %{buildroot}%{_bindir}/antlr4 <<'EOF'
 #!/bin/sh
-exec java -cp %{_javadir}/antlr4-tool.jar:%{_javadir}/antlr4-runtime.jar:%{_javadir}/antlr-runtime.jar:%{_javadir}/ST4.jar org.antlr.v4.Tool "$@"
+exec java -cp %{_javadir}/antlr4-tool.jar:%{dep_cp} org.antlr.v4.Tool "$@"
 EOF
 chmod 755 %{buildroot}%{_bindir}/antlr4
 
