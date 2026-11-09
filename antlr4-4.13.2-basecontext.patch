@@ -1,4 +1,4 @@
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java antlr4-tool-bc/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java antlr4-tool-bc/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java
 --- antlr4-tool-clean/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java	2026-11-09 18:06:54.296471885 +0100
 @@ -111,6 +111,9 @@
@@ -11,7 +11,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  		// replace old rule's AST; first create text of altered rule
  		GrammarAST RULES = (GrammarAST)ast.getFirstChildWithType(ANTLRParser.RULES);
  		String newRuleText = leftRecursiveRuleWalker.getArtificialOpPrecRule();
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/ActionTranslator.java antlr4-tool-bc/org/antlr/v4/codegen/ActionTranslator.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/ActionTranslator.java antlr4-tool-bc/org/antlr/v4/codegen/ActionTranslator.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/ActionTranslator.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/ActionTranslator.java	2026-11-09 18:07:20.563754607 +0100
 @@ -137,8 +137,14 @@
@@ -40,7 +40,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  					break;
  				case LOCAL:
  					chunks.add(new LocalRef(nodeContext, name, escapedName));
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/DefaultOutputModelFactory.java antlr4-tool-bc/org/antlr/v4/codegen/DefaultOutputModelFactory.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/DefaultOutputModelFactory.java antlr4-tool-bc/org/antlr/v4/codegen/DefaultOutputModelFactory.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/DefaultOutputModelFactory.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/DefaultOutputModelFactory.java	2026-11-09 18:07:20.523740654 +0100
 @@ -61,7 +61,7 @@
@@ -52,7 +52,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  			List<SrcOp> ops = new ArrayList<SrcOp>(1);
  			ops.add(setStopTokenAction);
  			return ops;
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/OutputModelController.java antlr4-tool-bc/org/antlr/v4/codegen/OutputModelController.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/OutputModelController.java antlr4-tool-bc/org/antlr/v4/codegen/OutputModelController.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/OutputModelController.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/OutputModelController.java	2026-11-09 18:07:26.930492830 +0100
 @@ -29,7 +29,9 @@
@@ -113,7 +113,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  			CodeBlockForAlt alt = opAltsCode.get(i);
  			alt.insertOp(0, altAction);
  		}
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/ParserFactory.java antlr4-tool-bc/org/antlr/v4/codegen/ParserFactory.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/ParserFactory.java antlr4-tool-bc/org/antlr/v4/codegen/ParserFactory.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/ParserFactory.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/ParserFactory.java	2026-11-09 18:07:09.482323292 +0100
 @@ -51,10 +51,14 @@
@@ -152,7 +152,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  	}
  
  	@Override
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/Target.java antlr4-tool-bc/org/antlr/v4/codegen/Target.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/Target.java antlr4-tool-bc/org/antlr/v4/codegen/Target.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/Target.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/Target.java	2026-11-09 18:06:54.334176440 +0100
 @@ -387,7 +387,8 @@
@@ -175,7 +175,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  	}
  
  	// should be same for all refs to same token like ctx.ID within single rule function
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java	2026-11-09 18:07:20.582431101 +0100
 @@ -8,6 +8,7 @@
@@ -210,7 +210,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  					if ( s!=null ) struct = s; // if alt label, use subctx
  				}
  				struct.addDecl(d); // stick in overall rule's ctx
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/ListenerFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/ListenerFile.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/model/ListenerFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/ListenerFile.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/model/ListenerFile.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/model/ListenerFile.java	2026-11-09 18:10:00.686022934 +0100
 @@ -45,16 +45,18 @@
@@ -252,9 +252,9 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
 +		return false;
 +	}
  }
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/RuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/model/RuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/model/RuleFunction.java	2024-08-03 18:42:08.000000000 +0200
-+++ antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java	2026-11-09 18:07:09.597112252 +0100
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java	2026-11-09 18:40:08.784609478 +0100
 @@ -9,6 +9,7 @@
  import org.antlr.runtime.RecognitionException;
  import org.antlr.runtime.tree.CommonTree;
@@ -338,8 +338,18 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
 +		RuleFunction effective = controller.rule(base);
 +		if ( effective==this || effective.ruleCtx==null ) {
 +			throw new IllegalStateException("no base context for "+rule.name);
- 		}
++		}
 +		return effective.ruleCtx;
++	}
++
++	public Map<String, AltLabelStructDecl> getEffectiveAltLabelContexts(OutputModelController controller) {
++		if ( altLabelCtxs!=null ) return altLabelCtxs;
++		Rule base = controller.getGrammar().getRule(rule.getBaseContext());
++		RuleFunction effective = controller.rule(base);
++		if ( effective==this ) {
++			throw new IllegalStateException("no base context for "+rule.name);
+ 		}
++		return effective.altLabelCtxs;
 +	}
  
 -		// make structs for -> labeled alts, define ctx labels for elements
@@ -351,16 +361,6 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
 -				List<AltAST> alts = new ArrayList<AltAST>();
 -				for (Pair<Integer, AltAST> pair : entry.getValue()) {
 -					alts.add(pair.b);
-+	public Map<String, AltLabelStructDecl> getEffectiveAltLabelContexts(OutputModelController controller) {
-+		if ( altLabelCtxs!=null ) return altLabelCtxs;
-+		Rule base = controller.getGrammar().getRule(rule.getBaseContext());
-+		RuleFunction effective = controller.rule(base);
-+		if ( effective==this ) {
-+			throw new IllegalStateException("no base context for "+rule.name);
-+		}
-+		return effective.altLabelCtxs;
-+	}
-+
 +	public void addContextGetters(OutputModelFactory factory, Rule r) {
 +		// Merge every rule that names this one as its base context, so one
 +		// context class carries the labels from all of them.
@@ -417,7 +417,58 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  				}
  			}
  		}
-@@ -307,15 +346,19 @@
+@@ -204,6 +243,22 @@
+ 
+ 			firstAlt = false;
+ 		}
++		// Sibling rules that share a base context are merged into one class.
++		// Their getters are renamed to the base, so a list under any of those
++		// names has to be a list under the shared name. Otherwise the set
++		// below keeps whichever zero-arg getter it saw first, and a single
++		// can hide the List getter Java cannot overload.
++		Set<String> listBase = new HashSet<String>();
++		for (GrammarAST t : allRefs) {
++			if ( t.getType()!=RULE_REF ) continue;
++			String refLabelName = getName(t);
++			if ( refLabelName==null ) continue;
++			Rule rref = factory.getGrammar().getRule(t.getText());
++			if ( rref==null ) continue;
++			if ( needsList.contains(refLabelName) || needsList.contains(rref.getBaseContext()) ) {
++				listBase.add(rref.getBaseContext());
++			}
++		}
+ 		Set<Decl> decls = new LinkedHashSet<Decl>();
+ 		for (GrammarAST t : allRefs) {
+ 			String refLabelName = getName(t);
+@@ -212,9 +267,14 @@
+ 				continue;
+ 			}
+ 
++			boolean needList = needsList.contains(refLabelName);
++			if ( !needList && t.getType()==RULE_REF ) {
++				Rule rref = factory.getGrammar().getRule(t.getText());
++				if ( rref!=null && listBase.contains(rref.getBaseContext()) ) needList = true;
++			}
+ 			List<Decl> d = getDeclForAltElement(t,
+ 												refLabelName,
+-												needsList.contains(refLabelName),
++												needList,
+ 												!nonOptional.contains(refLabelName));
+ 			decls.addAll(d);
+ 		}
+@@ -274,6 +334,11 @@
+ 			Rule rref = factory.getGrammar().getRule(t.getText());
+ 			String ctxName = factory.getGenerator().getTarget()
+ 							 .getRuleFunctionContextStructName(rref);
++			// The context class is the shared one, so the getter is named
++			// for that class. standardType with baseContext=type becomes type().
++			if ( rref!=null && !rref.name.equals(rref.getBaseContext()) ) {
++				refLabelName = rref.getBaseContext();
++			}
+ 			if ( needList) {
+ 				if(factory.getGenerator().getTarget().supportsOverloadedMethods())
+ 					decls.add( new ContextRuleListGetterDecl(factory, refLabelName, ctxName) );
+@@ -307,15 +372,19 @@
  	public void addContextDecl(String altLabel, Decl d) {
  		CodeBlockForOuterMostAlt alt = d.getOuterMostAltCodeBlock();
  		// if we found code blk and might be alt label, try to add to that label ctx
@@ -443,7 +494,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
 +		ctx.addDecl(d); // stick in overall rule's ctx
  	}
  }
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/VisitorFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/VisitorFile.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/model/VisitorFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/VisitorFile.java
 --- antlr4-tool-clean/org/antlr/v4/codegen/model/VisitorFile.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/codegen/model/VisitorFile.java	2026-11-09 18:10:00.686022934 +0100
 @@ -42,16 +42,22 @@
@@ -489,7 +540,75 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
 +		return false;
 +	}
  }
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/semantics/BasicSemanticChecks.java antlr4-tool-bc/org/antlr/v4/semantics/BasicSemanticChecks.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/codegen/model/decl/StructDecl.java antlr4-tool-bc/org/antlr/v4/codegen/model/decl/StructDecl.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/model/decl/StructDecl.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/decl/StructDecl.java	2026-11-09 18:38:41.681652896 +0100
+@@ -74,6 +74,17 @@
+ 		d.ctx = this;
+ 
+ 		if ( d instanceof ContextGetterDecl ) {
++			// A zero-arg single getter and a zero-arg list getter cannot both
++			// exist: Java does not overload on return type. baseContext
++			// renaming can map a once-only rule and a repeated rule onto the
++			// same name. Keep the list. The indexed getter has an int argument
++			// and stays either way.
++			if ( isListGetter(d) ) {
++				dropZeroArgSingle(d.name, d.getClass());
++			}
++			else if ( isZeroArgSingle(d) && hasListGetter(d.name, d.getClass()) ) {
++				return;
++			}
+ 			getters.add(d);
+ 			signatures.add(((ContextGetterDecl) d).getSignatureDecl());
+ 		} else {
+@@ -125,4 +136,46 @@
+ 	}
+ 
+ 	public boolean isEmpty() { return attrs.isEmpty(); }
++
++	private static boolean isListGetter(Decl d) {
++		return d instanceof ContextRuleListGetterDecl
++			|| d instanceof ContextTokenListGetterDecl;
++	}
++
++	private static boolean isZeroArgSingle(Decl d) {
++		return d instanceof ContextRuleGetterDecl
++			|| d instanceof ContextTokenGetterDecl;
++	}
++
++	/** A renamed baseContext can add the single getter before the list. */
++	private void dropZeroArgSingle(String name, Class<?> listKind) {
++		dropMatching(getters, name, listKind);
++		dropMatching(signatures, name, listKind);
++	}
++
++	private void dropMatching(OrderedHashSet<Decl> set, String name, Class<?> listKind) {
++		List<Decl> drop = new ArrayList<Decl>();
++		for (Decl existing : set) {
++			if ( !name.equals(existing.name) ) continue;
++			if ( listKind == ContextRuleListGetterDecl.class
++				&& existing instanceof ContextRuleGetterDecl ) {
++				drop.add(existing);
++			}
++			else if ( listKind == ContextTokenListGetterDecl.class
++				&& existing instanceof ContextTokenGetterDecl ) {
++				drop.add(existing);
++			}
++		}
++		for (Decl existing : drop) set.remove(existing);
++	}
++
++	private boolean hasListGetter(String name, Class<?> singleKind) {
++		Class<?> want = singleKind == ContextRuleGetterDecl.class
++			? ContextRuleListGetterDecl.class
++			: ContextTokenListGetterDecl.class;
++		for (Decl existing : getters) {
++			if ( name.equals(existing.name) && want.isInstance(existing) ) return true;
++		}
++		return false;
++	}
+ }
+diff -ruN antlr4-tool-clean/org/antlr/v4/semantics/BasicSemanticChecks.java antlr4-tool-bc/org/antlr/v4/semantics/BasicSemanticChecks.java
 --- antlr4-tool-clean/org/antlr/v4/semantics/BasicSemanticChecks.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/semantics/BasicSemanticChecks.java	2026-11-09 18:06:54.296471885 +0100
 @@ -281,11 +281,16 @@
@@ -514,7 +633,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  				}
  			}
  		}
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/semantics/SymbolChecks.java antlr4-tool-bc/org/antlr/v4/semantics/SymbolChecks.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/semantics/SymbolChecks.java antlr4-tool-bc/org/antlr/v4/semantics/SymbolChecks.java
 --- antlr4-tool-clean/org/antlr/v4/semantics/SymbolChecks.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/semantics/SymbolChecks.java	2026-11-09 18:06:54.334176440 +0100
 @@ -206,7 +206,15 @@
@@ -545,7 +664,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  		}
  	}
  
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/tool/Grammar.java antlr4-tool-bc/org/antlr/v4/tool/Grammar.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/tool/Grammar.java antlr4-tool-bc/org/antlr/v4/tool/Grammar.java
 --- antlr4-tool-clean/org/antlr/v4/tool/Grammar.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/tool/Grammar.java	2026-11-09 18:06:54.302176130 +0100
 @@ -93,6 +93,11 @@
@@ -560,7 +679,7 @@ diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list
  
  	public static final Set<String> parserBlockOptions = new HashSet<String>();
  
-diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/tool/Rule.java antlr4-tool-bc/org/antlr/v4/tool/Rule.java
+diff -ruN antlr4-tool-clean/org/antlr/v4/tool/Rule.java antlr4-tool-bc/org/antlr/v4/tool/Rule.java
 --- antlr4-tool-clean/org/antlr/v4/tool/Rule.java	2024-08-03 18:42:08.000000000 +0200
 +++ antlr4-tool-bc/org/antlr/v4/tool/Rule.java	2026-11-09 18:06:54.334176440 +0100
 @@ -53,6 +53,8 @@

@@ -1,6 +1,6 @@
 Name:		antlr4-tool
 Version:	4.13.2
-Release:	2
+Release:	3
 Summary:	ANTLR 4 grammar tool
 Group:		Development/Java
 License:	BSD
@@ -30,7 +30,9 @@ The runtime is the antlr4 package. UnicodeDataTemplateController is
 omitted: it only regenerates UnicodeData, and that needs ICU. The
 GUI and TestRig are omitted. tomlj runs this tool while it builds.
 The baseContext rule option lets several rules share one context
-class. A grammar that does not use it still generates the same Java.
+class. Getters on that class are named for the shared context, and a
+repeated element stays a List getter. A grammar that does not use
+the option still generates the same Java.
 
 %prep
 %setup -q -c -T -n %{name}-%{version}
@@ -141,7 +143,14 @@ END
 	java -cp ../%{name}.jar:%{dep_cp} org.antlr.v4.Tool -visitor -o share Share.g4
 	test -s share/ShareParser.java
 	grep -q 'class NumContext extends EContext' share/ShareParser.java
+	# n() is still a rule method. The getter on ItemContext is e() for both alts.
 	grep -q 'final EContext n()' share/ShareParser.java
+	awk '/class ItemContext /,/^	}/' share/ShareParser.java > itemctx.txt
+	grep -q 'EContext e()' itemctx.txt
+	if grep -q 'n()' itemctx.txt; then
+		echo "shared getter kept the referenced rule name" >&2
+		exit 1
+	fi
 	if grep -q 'visitN(' share/ShareVisitor.java; then
 		echo "non-base rule leaked a visitor method" >&2
 		exit 1
@@ -167,7 +176,8 @@ public class Main {
 		if (tree.item().size() != 2) throw new RuntimeException("items");
 		for (int i = 0; i < 2; i++) {
 			ShareParser.ItemContext item = tree.item(i);
-			ParserRuleContext inner = item.e() != null ? item.e() : item.n();
+			ParserRuleContext inner = item.e();
+			if (inner == null) throw new RuntimeException("missing e");
 			if (!(inner instanceof ShareParser.NumContext)) throw new RuntimeException("num");
 			if (!(inner instanceof ShareParser.EContext)) throw new RuntimeException("ectx");
 		}
