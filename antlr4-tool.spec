@@ -1,6 +1,6 @@
 Name:		antlr4-tool
 Version:	4.13.2
-Release:	3
+Release:	4
 Summary:	ANTLR 4 grammar tool
 Group:		Development/Java
 License:	BSD
@@ -18,17 +18,20 @@ BuildRequires:	java-current-devel
 BuildRequires:	antlr4 = %{version}
 BuildRequires:	antlr-runtime
 BuildRequires:	stringtemplate4 >= 4.3.4
+BuildRequires:	treelayout
 BuildRequires:	sysjar
 
 # build-classpath belongs to javapackages-tools, which is not installed
 # in this build root. These are the jars the BuildRequires above install.
-%global dep_cp %{_javadir}/antlr4-runtime.jar:%{_javadir}/antlr-runtime.jar:%{_javadir}/ST4.jar
+# treelayout's jar is nested; the package does not ship a top-level symlink.
+%global dep_cp %{_javadir}/antlr4-runtime.jar:%{_javadir}/antlr-runtime.jar:%{_javadir}/ST4.jar:%{_javadir}/treelayout/org.abego.treelayout.core.jar
 
 %description
 ANTLR 4 reads a grammar and generates a parser. This is the tool.
 The runtime is the antlr4 package. UnicodeDataTemplateController is
 omitted: it only regenerates UnicodeData, and that needs ICU. The
-GUI and TestRig are omitted. tomlj runs this tool while it builds.
+parse-tree viewer and TestRig are included. They use treelayout.
+tomlj runs this tool while it builds.
 The baseContext rule option lets several rules share one context
 class. Getters on that class are named for the shared context, and a
 repeated element stays a List getter. A grammar that does not use
@@ -39,8 +42,9 @@ the option still generates the same Java.
 jar xf %{SOURCE0}
 install -m 644 %{SOURCE1} LICENSE.txt
 # The controller imports com.ibm.icu. UnicodeData.java is already
-# generated. Nothing outside the gui package references it.
-rm -rf org/antlr/v4/gui src/org/antlr/v4/unicode/UnicodeDataTemplateController.java
+# generated. The gui stays: GroovyConsole's CST inspector extends
+# org.antlr.v4.gui.TestRig.
+rm -f src/org/antlr/v4/unicode/UnicodeDataTemplateController.java
 rm -f org/antlr/v4/unicode/UnicodeDataTemplateController.java
 mkdir -p org/antlr/v4/unicode
 mv src/org/antlr/v4/unicode/UnicodeData.java org/antlr/v4/unicode/UnicodeData.java
@@ -90,6 +94,11 @@ cat > %{name}.pom <<EOF
       <groupId>org.antlr</groupId>
       <artifactId>ST4</artifactId>
       <version>4.3.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.abego.treelayout</groupId>
+      <artifactId>org.abego.treelayout.core</artifactId>
+      <version>1.0.3</version>
     </dependency>
   </dependencies>
 </project>
@@ -189,6 +198,8 @@ END
 	javac --release 11 -encoding UTF-8 -cp %{_javadir}/antlr4-runtime.jar:classes -d classes Main.java
 	java -cp %{_javadir}/antlr4-runtime.jar:classes Main | grep -q share_ok
 )
+jar tf %{name}.jar | grep -q '^org/antlr/v4/gui/TestRig.class$'
+jar tf %{name}.jar | grep -q '^org/antlr/v4/gui/TreeViewer.class$'
 
 %install
 sysjar install --buildroot %{buildroot} \
