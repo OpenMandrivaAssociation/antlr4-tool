@@ -1,6 +1,6 @@
 Name:		antlr4-tool
 Version:	4.13.2
-Release:	1
+Release:	2
 Summary:	ANTLR 4 grammar tool
 Group:		Development/Java
 License:	BSD
@@ -10,6 +10,8 @@ URL:		https://www.antlr.org/
 # It contains no class files.
 Source0:	https://repo1.maven.org/maven2/org/antlr/antlr4/%{version}/antlr4-%{version}-sources.jar
 Source1:	https://raw.githubusercontent.com/antlr/antlr4/%{version}/LICENSE.txt
+# Groovy's Parrot grammar shares one context class across rules.
+Patch0:		antlr4-%{version}-basecontext.patch
 
 BuildArch:	noarch
 BuildRequires:	java-current-devel
@@ -27,6 +29,8 @@ ANTLR 4 reads a grammar and generates a parser. This is the tool.
 The runtime is the antlr4 package. UnicodeDataTemplateController is
 omitted: it only regenerates UnicodeData, and that needs ICU. The
 GUI and TestRig are omitted. tomlj runs this tool while it builds.
+The baseContext rule option lets several rules share one context
+class. A grammar that does not use it still generates the same Java.
 
 %prep
 %setup -q -c -T -n %{name}-%{version}
@@ -40,6 +44,7 @@ mkdir -p org/antlr/v4/unicode
 mv src/org/antlr/v4/unicode/UnicodeData.java org/antlr/v4/unicode/UnicodeData.java
 rm -rf src
 find . -name '*.g' -delete
+%autopatch -p1
 
 %build
 export JAVA_HOME=%{_jvmdir}/java-openjdk
@@ -107,6 +112,73 @@ END
 )
 test -s check/out/HelloParser.java
 test -s check/out/HelloLexer.java
+# Duplicate alt labels stay an error unless the rules share a context.
+# Two rules can share one context class. Compile that parser and run it.
+(
+	cd check
+	cat > Bad.g4 <<'END'
+grammar Bad;
+s : a | b ;
+a : INT # X ;
+b : INT # X ;
+INT : [0-9]+ ;
+END
+	if java -cp ../%{name}.jar:%{dep_cp} org.antlr.v4.Tool -o bad Bad.g4 >bad.log 2>&1; then
+		echo "duplicate alt label was accepted" >&2
+		exit 1
+	fi
+	grep -q 'error(123)' bad.log
+	cat > Share.g4 <<'END'
+grammar Share;
+file : item+ EOF ;
+item : e | n ;
+e : INT # Num ;
+n options { baseContext = e; } : FLOAT # Num ;
+INT : [0-9]+ ;
+FLOAT : [0-9]+ '.' [0-9]+ ;
+WS : [ \t\r\n]+ -> skip ;
+END
+	java -cp ../%{name}.jar:%{dep_cp} org.antlr.v4.Tool -visitor -o share Share.g4
+	test -s share/ShareParser.java
+	grep -q 'class NumContext extends EContext' share/ShareParser.java
+	grep -q 'final EContext n()' share/ShareParser.java
+	if grep -q 'visitN(' share/ShareVisitor.java; then
+		echo "non-base rule leaked a visitor method" >&2
+		exit 1
+	fi
+	grep -q 'visitE(' share/ShareVisitor.java
+	mkdir -p classes
+	javac --release 11 -encoding UTF-8 \
+		-cp %{_javadir}/antlr4-runtime.jar \
+		-d classes share/*.java
+	cat > Main.java <<'END'
+import org.antlr.v4.runtime.*;
+public class Main {
+	public static void main(String[] args) {
+		ShareLexer lexer = new ShareLexer(CharStreams.fromString("1 2.5"));
+		ShareParser parser = new ShareParser(new CommonTokenStream(lexer));
+		parser.removeErrorListeners();
+		parser.addErrorListener(new BaseErrorListener() {
+			@Override public void syntaxError(Recognizer<?,?> r, Object o, int line, int c, String msg, RecognitionException e) {
+				throw new RuntimeException(line + ":" + c + " " + msg);
+			}
+		});
+		ShareParser.FileContext tree = parser.file();
+		if (tree.item().size() != 2) throw new RuntimeException("items");
+		for (int i = 0; i < 2; i++) {
+			ShareParser.ItemContext item = tree.item(i);
+			ParserRuleContext inner = item.e() != null ? item.e() : item.n();
+			if (!(inner instanceof ShareParser.NumContext)) throw new RuntimeException("num");
+			if (!(inner instanceof ShareParser.EContext)) throw new RuntimeException("ectx");
+		}
+		new ShareBaseVisitor<Void>().visit(tree);
+		System.out.println("share_ok");
+	}
+}
+END
+	javac --release 11 -encoding UTF-8 -cp %{_javadir}/antlr4-runtime.jar:classes -d classes Main.java
+	java -cp %{_javadir}/antlr4-runtime.jar:classes Main | grep -q share_ok
+)
 
 %install
 sysjar install --buildroot %{buildroot} \

@@ -1,0 +1,599 @@
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java antlr4-tool-bc/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java
+--- antlr4-tool-clean/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/analysis/LeftRecursiveRuleTransformer.java	2026-11-09 18:06:54.296471885 +0100
+@@ -111,6 +111,9 @@
+ 		}
+ 		if ( !isLeftRec ) return false;
+ 
++		// The rewritten AST drops the options block. Remember baseContext first.
++		r.setBaseContext(r.getBaseContext());
++
+ 		// replace old rule's AST; first create text of altered rule
+ 		GrammarAST RULES = (GrammarAST)ast.getFirstChildWithType(ANTLRParser.RULES);
+ 		String newRuleText = leftRecursiveRuleWalker.getArtificialOpPrecRule();
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/ActionTranslator.java antlr4-tool-bc/org/antlr/v4/codegen/ActionTranslator.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/ActionTranslator.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/ActionTranslator.java	2026-11-09 18:07:20.563754607 +0100
+@@ -137,8 +137,14 @@
+         factory.getGrammar().tool.log("action-translator", "translate " + action);
+ 		String altLabel = node.getAltLabel();
+ 		if ( rf!=null ) {
+-		    translator.nodeContext = rf.ruleCtx;
+-	        if ( altLabel!=null ) translator.nodeContext = rf.altLabelCtxs.get(altLabel);
++		    translator.nodeContext = rf.getEffectiveRuleContext(factory.getController());
++	        if ( altLabel!=null ) {
++				java.util.Map<String, org.antlr.v4.codegen.model.decl.AltLabelStructDecl> labels =
++					rf.getEffectiveAltLabelContexts(factory.getController());
++				if ( labels!=null && labels.get(altLabel)!=null ) {
++					translator.nodeContext = labels.get(altLabel);
++				}
++			}
+ 		}
+ 		ANTLRStringStream in = new ANTLRStringStream(action);
+ 		in.setLine(tokenWithinAction.getLine());
+@@ -161,7 +167,7 @@
+ 					chunks.add(new ArgRef(nodeContext, name, escapedName));
+ 					break;
+ 				case RET:
+-					chunks.add(new RetValueRef(rf.ruleCtx, name, escapedName));
++					chunks.add(new RetValueRef(rf.getEffectiveRuleContext(factory.getController()), name, escapedName));
+ 					break;
+ 				case LOCAL:
+ 					chunks.add(new LocalRef(nodeContext, name, escapedName));
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/DefaultOutputModelFactory.java antlr4-tool-bc/org/antlr/v4/codegen/DefaultOutputModelFactory.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/DefaultOutputModelFactory.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/DefaultOutputModelFactory.java	2026-11-09 18:07:20.523740654 +0100
+@@ -61,7 +61,7 @@
+ 			CodeGenerator gen = getGenerator();
+ 			STGroup codegenTemplates = gen.getTemplates();
+ 			ST setStopTokenAST = codegenTemplates.getInstanceOf("recRuleSetStopToken");
+-			Action setStopTokenAction = new Action(this, function.ruleCtx, setStopTokenAST);
++			Action setStopTokenAction = new Action(this, function.getEffectiveRuleContext(getController()), setStopTokenAST);
+ 			List<SrcOp> ops = new ArrayList<SrcOp>(1);
+ 			ops.add(setStopTokenAction);
+ 			return ops;
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/OutputModelController.java antlr4-tool-bc/org/antlr/v4/codegen/OutputModelController.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/OutputModelController.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/OutputModelController.java	2026-11-09 18:07:26.930492830 +0100
+@@ -29,7 +29,9 @@
+ import org.antlr.v4.codegen.model.SrcOp;
+ import org.antlr.v4.codegen.model.StarBlock;
+ import org.antlr.v4.codegen.model.VisitorFile;
++import org.antlr.v4.codegen.model.decl.AltLabelStructDecl;
+ import org.antlr.v4.codegen.model.decl.CodeBlock;
++import org.antlr.v4.codegen.model.decl.StructDecl;
+ import org.antlr.v4.misc.Utils;
+ import org.antlr.v4.parse.ANTLRParser;
+ import org.antlr.v4.parse.GrammarASTAdaptor;
+@@ -184,6 +186,15 @@
+ 		popCurrentRule();
+ 	}
+ 
++	private StructDecl labelCtx(RuleFunction function, String altLabel) {
++		if ( altLabel==null ) return function.getEffectiveRuleContext(this);
++		java.util.Map<String, AltLabelStructDecl> labels = function.getEffectiveAltLabelContexts(this);
++		if ( labels==null ) return function.getEffectiveRuleContext(this);
++		AltLabelStructDecl alt = labels.get(altLabel);
++		if ( alt==null ) return function.getEffectiveRuleContext(this);
++		return alt;
++	}
++
+ 	public void buildLeftRecursiveRuleFunction(LeftRecursiveRule r, LeftRecursiveRuleFunction function) {
+ 		buildNormalRuleFunction(r, function);
+ 
+@@ -223,19 +234,19 @@
+ 			ST altActionST = codegenTemplates.getInstanceOf("recRuleReplaceContext");
+ 			altActionST.add("ctxName", Utils.capitalize(altInfo.altLabel));
+ 			Action altAction =
+-				new Action(delegate, function.altLabelCtxs.get(altInfo.altLabel), altActionST);
++				new Action(delegate, labelCtx(function, altInfo.altLabel), altActionST);
+ 			CodeBlockForAlt alt = primaryAltsCode.get(i);
+ 			alt.insertOp(0, altAction);
+ 		}
+ 
+ 		// Insert code to set ctx.stop after primary block and before op * loop
+ 		ST setStopTokenAST = codegenTemplates.getInstanceOf("recRuleSetStopToken");
+-		Action setStopTokenAction = new Action(delegate, function.ruleCtx, setStopTokenAST);
++		Action setStopTokenAction = new Action(delegate, function.getEffectiveRuleContext(this), setStopTokenAST);
+ 		outerAlt.insertOp(1, setStopTokenAction);
+ 
+ 		// Insert code to set _prevctx at start of * loop
+ 		ST setPrevCtx = codegenTemplates.getInstanceOf("recRuleSetPrevCtx");
+-		Action setPrevCtxAction = new Action(delegate, function.ruleCtx, setPrevCtx);
++		Action setPrevCtxAction = new Action(delegate, function.getEffectiveRuleContext(this), setPrevCtx);
+ 		opAltStarBlock.addIterationOp(setPrevCtxAction);
+ 
+ 		// Insert code in front of each op alt to create specialized ctx if there was an alt label
+@@ -263,7 +274,7 @@
+ 				delegate.getGenerator().tool.errMgr.toolError(ErrorType.CODE_TEMPLATE_ARG_ISSUE, templateName, "isListLabel");
+ 			}
+ 			Action altAction =
+-				new Action(delegate, function.altLabelCtxs.get(altInfo.altLabel), altActionST);
++				new Action(delegate, labelCtx(function, altInfo.altLabel), altActionST);
+ 			CodeBlockForAlt alt = opAltsCode.get(i);
+ 			alt.insertOp(0, altAction);
+ 		}
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/ParserFactory.java antlr4-tool-bc/org/antlr/v4/codegen/ParserFactory.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/ParserFactory.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/ParserFactory.java	2026-11-09 18:07:09.482323292 +0100
+@@ -51,10 +51,14 @@
+ import org.antlr.v4.tool.ast.GrammarAST;
+ import org.antlr.v4.tool.ast.TerminalAST;
+ 
++import java.util.HashMap;
+ import java.util.List;
++import java.util.Map;
+ 
+ /** */
+ public class ParserFactory extends DefaultOutputModelFactory {
++	private final Map<Rule, RuleFunction> ruleFunctions = new HashMap<Rule, RuleFunction>();
++
+ 	public ParserFactory(CodeGenerator gen) { super(gen); }
+ 
+ 	@Override
+@@ -69,13 +73,17 @@
+ 
+ 	@Override
+ 	public RuleFunction rule(Rule r) {
++		RuleFunction cached = ruleFunctions.get(r);
++		if ( cached!=null ) return cached;
++		RuleFunction rf;
+ 		if ( r instanceof LeftRecursiveRule ) {
+-			return new LeftRecursiveRuleFunction(this, (LeftRecursiveRule)r);
++			rf = new LeftRecursiveRuleFunction(this, (LeftRecursiveRule)r);
+ 		}
+ 		else {
+-			RuleFunction rf = new RuleFunction(this, r);
+-			return rf;
++			rf = new RuleFunction(this, r);
+ 		}
++		ruleFunctions.put(r, rf);
++		return rf;
+ 	}
+ 
+ 	@Override
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/Target.java antlr4-tool-bc/org/antlr/v4/codegen/Target.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/Target.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/Target.java	2026-11-09 18:06:54.334176440 +0100
+@@ -387,7 +387,8 @@
+ 		if ( r.g.isLexer() ) {
+ 			return getTemplates().getInstanceOf("LexerRuleContext").render();
+ 		}
+-		return Utils.capitalize(r.name)+getTemplates().getInstanceOf("RuleContextNameSuffix").render();
++		String baseName = r.getBaseContext();
++		return Utils.capitalize(baseName)+getTemplates().getInstanceOf("RuleContextNameSuffix").render();
+ 	}
+ 
+ 	public String getAltLabelContextStructName(String label) {
+@@ -404,7 +405,8 @@
+ 		if ( r.g.isLexer() ) {
+ 			return getTemplates().getInstanceOf("LexerRuleContext").render();
+ 		}
+-		return Utils.capitalize(r.name)+getTemplates().getInstanceOf("RuleContextNameSuffix").render();
++		String baseName = r.getBaseContext();
++		return Utils.capitalize(baseName)+getTemplates().getInstanceOf("RuleContextNameSuffix").render();
+ 	}
+ 
+ 	// should be same for all refs to same token like ctx.ID within single rule function
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/LeftRecursiveRuleFunction.java	2026-11-09 18:07:20.582431101 +0100
+@@ -8,6 +8,7 @@
+ 
+ import org.antlr.v4.codegen.CodeGenerator;
+ import org.antlr.v4.codegen.OutputModelFactory;
++import org.antlr.v4.codegen.model.decl.AltLabelStructDecl;
+ import org.antlr.v4.codegen.model.decl.RuleContextDecl;
+ import org.antlr.v4.codegen.model.decl.RuleContextListDecl;
+ import org.antlr.v4.codegen.model.decl.StructDecl;
+@@ -17,6 +18,8 @@
+ import org.antlr.v4.tool.Rule;
+ import org.antlr.v4.tool.ast.GrammarAST;
+ 
++import java.util.Map;
++
+ public class LeftRecursiveRuleFunction extends RuleFunction {
+ 	public LeftRecursiveRuleFunction(OutputModelFactory factory, LeftRecursiveRule r) {
+ 		super(factory, r);
+@@ -40,9 +43,11 @@
+ 					d = new RuleContextListDecl(factory, label, ctxName);
+ 				}
+ 
+-				StructDecl struct = ruleCtx;
+-				if ( altLabelCtxs!=null ) {
+-					StructDecl s = altLabelCtxs.get(altLabel);
++				StructDecl struct = getEffectiveRuleContext(factory.getController());
++				Map<String, AltLabelStructDecl> labelCtxs =
++					getEffectiveAltLabelContexts(factory.getController());
++				if ( labelCtxs!=null ) {
++					StructDecl s = labelCtxs.get(altLabel);
+ 					if ( s!=null ) struct = s; // if alt label, use subctx
+ 				}
+ 				struct.addDecl(d); // stick in overall rule's ctx
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/ListenerFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/ListenerFile.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/model/ListenerFile.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/ListenerFile.java	2026-11-09 18:10:00.686022934 +0100
+@@ -45,16 +45,18 @@
+ 		namedActions = buildNamedActions(factory.getGrammar(), ast -> ast.getScope() == null);
+ 		for (Rule r : g.rules.values()) {
+ 			Map<String, List<Pair<Integer,AltAST>>> labels = r.getAltLabels();
++			boolean isBase = r.name.equals(r.getBaseContext());
++			if ( isBase && (labels==null || baseContextIsShared(g, r.name)) ) {
++				listenerNames.add(r.name);
++			}
+ 			if ( labels!=null ) {
+ 				for (Map.Entry<String, List<Pair<Integer, AltAST>>> pair : labels.entrySet()) {
+ 					listenerNames.add(pair.getKey());
+-					listenerLabelRuleNames.put(pair.getKey(), r.name);
++					if ( !listenerLabelRuleNames.containsKey(pair.getKey()) ) {
++						listenerLabelRuleNames.put(pair.getKey(), r.getBaseContext());
++					}
+ 				}
+ 			}
+-			else {
+-				// only add rule context if no labels
+-				listenerNames.add(r.name);
+-			}
+ 		}
+ 		ActionAST ast = g.namedActions.get("header");
+ 		if ( ast!=null && ast.getScope()==null ) {
+@@ -64,4 +66,14 @@
+ 		accessLevel = g.getOptionString("accessLevel");
+ 		exportMacro = g.getOptionString("exportMacro");
+ 	}
++
++	/** True when some other rule's context class is this rule. */
++	private static boolean baseContextIsShared(Grammar g, String name) {
++		for (Rule other : g.rules.values()) {
++			if ( !other.name.equals(other.getBaseContext()) && name.equals(other.getBaseContext()) ) {
++				return true;
++			}
++		}
++		return false;
++	}
+ }
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/RuleFunction.java antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/model/RuleFunction.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/RuleFunction.java	2026-11-09 18:07:09.597112252 +0100
+@@ -9,6 +9,7 @@
+ import org.antlr.runtime.RecognitionException;
+ import org.antlr.runtime.tree.CommonTree;
+ import org.antlr.runtime.tree.CommonTreeNodeStream;
++import org.antlr.v4.codegen.OutputModelController;
+ import org.antlr.v4.codegen.OutputModelFactory;
+ import org.antlr.v4.codegen.model.decl.AltLabelStructDecl;
+ import org.antlr.v4.codegen.model.decl.AttributeDecl;
+@@ -39,6 +40,7 @@
+ import java.util.Collection;
+ import java.util.HashMap;
+ import java.util.HashSet;
++import java.util.LinkedHashMap;
+ import java.util.LinkedHashSet;
+ import java.util.List;
+ import java.util.Map;
+@@ -81,26 +83,33 @@
+ 
+ 		index = r.index;
+ 
+-		ruleCtx = new StructDecl(factory, r);
+ 		altToContext = new AltLabelStructDecl[r.getOriginalNumberOfAlts()+1];
+-		addContextGetters(factory, r);
+-
+-		if ( r.args!=null ) {
+-			Collection<Attribute> decls = r.args.attributes.values();
+-			if ( decls.size()>0 ) {
+-				args = new ArrayList<AttributeDecl>();
+-				ruleCtx.addDecls(decls);
+-				for (Attribute a : decls) {
+-					args.add(new AttributeDecl(factory, a));
++		// Only the base rule emits the shared context class. Other rules
++		// that name it with baseContext reuse that class.
++		if ( r.name.equals(r.getBaseContext()) ) {
++			ruleCtx = new StructDecl(factory, r);
++			addContextGetters(factory, r);
++
++			if ( r.args!=null ) {
++				Collection<Attribute> decls = r.args.attributes.values();
++				if ( decls.size()>0 ) {
++					args = new ArrayList<AttributeDecl>();
++					ruleCtx.addDecls(decls);
++					for (Attribute a : decls) {
++						args.add(new AttributeDecl(factory, a));
++					}
++					ruleCtx.ctorAttrs = args;
+ 				}
+-				ruleCtx.ctorAttrs = args;
++			}
++			if ( r.retvals!=null ) {
++				ruleCtx.addDecls(r.retvals.attributes.values());
++			}
++			if ( r.locals!=null ) {
++				ruleCtx.addDecls(r.locals.attributes.values());
+ 			}
+ 		}
+-		if ( r.retvals!=null ) {
+-			ruleCtx.addDecls(r.retvals.attributes.values());
+-		}
+-		if ( r.locals!=null ) {
+-			ruleCtx.addDecls(r.locals.attributes.values());
++		else if ( r.args!=null || r.retvals!=null || r.locals!=null ) {
++			throw new UnsupportedOperationException("baseContext rules cannot declare args, returns, or locals");
+ 		}
+ 
+ 		ruleLabels = r.getElementLabelNames();
+@@ -117,38 +126,68 @@
+ 		startState = factory.getGrammar().atn.ruleToStartState[r.index];
+ 	}
+ 
+-	public void addContextGetters(OutputModelFactory factory, Rule r) {
+-		// Add ctx labels for elements in alts with no -> label
+-		List<AltAST> altsNoLabels = r.getUnlabeledAltASTs();
+-		if ( altsNoLabels!=null ) {
+-			Set<Decl> decls = getDeclsForAllElements(altsNoLabels);
+-			// we know to put in rule ctx, so do it directly
+-			for (Decl d : decls) ruleCtx.addDecl(d);
++	public StructDecl getEffectiveRuleContext(OutputModelController controller) {
++		if ( ruleCtx!=null ) return ruleCtx;
++		Rule base = controller.getGrammar().getRule(rule.getBaseContext());
++		RuleFunction effective = controller.rule(base);
++		if ( effective==this || effective.ruleCtx==null ) {
++			throw new IllegalStateException("no base context for "+rule.name);
+ 		}
++		return effective.ruleCtx;
++	}
+ 
+-		// make structs for -> labeled alts, define ctx labels for elements
+-		altLabelCtxs = new HashMap<String,AltLabelStructDecl>();
+-		Map<String, List<Pair<Integer, AltAST>>> labels = r.getAltLabels();
+-		if ( labels!=null ) {
+-			for (Map.Entry<String, List<Pair<Integer, AltAST>>> entry : labels.entrySet()) {
+-				String label = entry.getKey();
+-				List<AltAST> alts = new ArrayList<AltAST>();
+-				for (Pair<Integer, AltAST> pair : entry.getValue()) {
+-					alts.add(pair.b);
++	public Map<String, AltLabelStructDecl> getEffectiveAltLabelContexts(OutputModelController controller) {
++		if ( altLabelCtxs!=null ) return altLabelCtxs;
++		Rule base = controller.getGrammar().getRule(rule.getBaseContext());
++		RuleFunction effective = controller.rule(base);
++		if ( effective==this ) {
++			throw new IllegalStateException("no base context for "+rule.name);
++		}
++		return effective.altLabelCtxs;
++	}
++
++	public void addContextGetters(OutputModelFactory factory, Rule r) {
++		// Merge every rule that names this one as its base context, so one
++		// context class carries the labels from all of them.
++		List<AltAST> altsNoLabels = new ArrayList<AltAST>();
++		Map<String, List<Pair<Integer, AltAST>>> labels =
++			new LinkedHashMap<String, List<Pair<Integer, AltAST>>>();
++		for (Rule sibling : r.g.rules.values()) {
++			if ( !r.name.equals(sibling.getBaseContext()) ) continue;
++			List<AltAST> unlabeled = sibling.getUnlabeledAltASTs();
++			if ( unlabeled!=null ) altsNoLabels.addAll(unlabeled);
++			Map<String, List<Pair<Integer, AltAST>>> siblingLabels = sibling.getAltLabels();
++			if ( siblingLabels==null ) continue;
++			for (Map.Entry<String, List<Pair<Integer, AltAST>>> entry : siblingLabels.entrySet()) {
++				List<Pair<Integer, AltAST>> list = labels.get(entry.getKey());
++				if ( list==null ) {
++					list = new ArrayList<Pair<Integer, AltAST>>();
++					labels.put(entry.getKey(), list);
+ 				}
++				list.addAll(entry.getValue());
++			}
++		}
+ 
+-				Set<Decl> decls = getDeclsForAllElements(alts);
+-				for (Pair<Integer, AltAST> pair : entry.getValue()) {
+-					Integer altNum = pair.a;
+-					altToContext[altNum] = new AltLabelStructDecl(factory, r, altNum, label);
+-					if (!altLabelCtxs.containsKey(label)) {
+-						altLabelCtxs.put(label, altToContext[altNum]);
+-					}
++		if ( !altsNoLabels.isEmpty() ) {
++			for (Decl d : getDeclsForAllElements(altsNoLabels)) ruleCtx.addDecl(d);
++		}
+ 
+-					// we know which ctx to put in, so do it directly
+-					for (Decl d : decls) {
+-						altToContext[altNum].addDecl(d);
+-					}
++		altLabelCtxs = new LinkedHashMap<String, AltLabelStructDecl>();
++		for (Map.Entry<String, List<Pair<Integer, AltAST>>> entry : labels.entrySet()) {
++			String label = entry.getKey();
++			List<AltAST> alts = new ArrayList<AltAST>();
++			for (Pair<Integer, AltAST> pair : entry.getValue()) alts.add(pair.b);
++			AltLabelStructDecl decl = new AltLabelStructDecl(factory, r, 0, label);
++			altLabelCtxs.put(label, decl);
++			for (Decl d : getDeclsForAllElements(alts)) decl.addDecl(d);
++		}
++
++		Map<String, List<Pair<Integer, AltAST>>> own = r.getAltLabels();
++		if ( own!=null ) {
++			for (Map.Entry<String, List<Pair<Integer, AltAST>>> entry : own.entrySet()) {
++				AltLabelStructDecl decl = altLabelCtxs.get(entry.getKey());
++				for (Pair<Integer, AltAST> pair : entry.getValue()) {
++					altToContext[pair.a] = decl;
+ 				}
+ 			}
+ 		}
+@@ -307,15 +346,19 @@
+ 	public void addContextDecl(String altLabel, Decl d) {
+ 		CodeBlockForOuterMostAlt alt = d.getOuterMostAltCodeBlock();
+ 		// if we found code blk and might be alt label, try to add to that label ctx
+-		if ( alt!=null && altLabelCtxs!=null ) {
+-//			System.out.println(d.name+" lives in alt "+alt.alt.altNum);
+-			AltLabelStructDecl altCtx = altLabelCtxs.get(altLabel);
+-			if ( altCtx!=null ) { // we have an alt ctx
+-//				System.out.println("ctx is "+ altCtx.name);
++		Map<String, AltLabelStructDecl> labelCtxs = altLabelCtxs;
++		StructDecl ctx = ruleCtx;
++		if ( factory.getController()!=null && !rule.name.equals(rule.getBaseContext()) ) {
++			labelCtxs = getEffectiveAltLabelContexts(factory.getController());
++			ctx = getEffectiveRuleContext(factory.getController());
++		}
++		if ( alt!=null && labelCtxs!=null ) {
++			AltLabelStructDecl altCtx = labelCtxs.get(altLabel);
++			if ( altCtx!=null ) {
+ 				altCtx.addDecl(d);
+ 				return;
+ 			}
+ 		}
+-		ruleCtx.addDecl(d); // stick in overall rule's ctx
++		ctx.addDecl(d); // stick in overall rule's ctx
+ 	}
+ }
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/codegen/model/VisitorFile.java antlr4-tool-bc/org/antlr/v4/codegen/model/VisitorFile.java
+--- antlr4-tool-clean/org/antlr/v4/codegen/model/VisitorFile.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/codegen/model/VisitorFile.java	2026-11-09 18:10:00.686022934 +0100
+@@ -42,16 +42,22 @@
+ 		grammarName = g.name;
+ 		for (Rule r : g.rules.values()) {
+ 			Map<String, List<Pair<Integer, AltAST>>> labels = r.getAltLabels();
++			boolean isBase = r.name.equals(r.getBaseContext());
++			// A rule that only contributes alts to another rule has no context
++			// class of its own. A labeled rule normally has no visit<Rule>
++			// method; keep that, and add visit<Rule> only when other rules
++			// share this context (Groovy's Parrot visitor does).
++			if ( isBase && (labels==null || baseContextIsShared(g, r.name)) ) {
++				visitorNames.add(r.name);
++			}
+ 			if ( labels!=null ) {
+ 				for (Map.Entry<String, List<Pair<Integer, AltAST>>> pair : labels.entrySet()) {
+ 					visitorNames.add(pair.getKey());
+-					visitorLabelRuleNames.put(pair.getKey(), r.name);
++					if ( !visitorLabelRuleNames.containsKey(pair.getKey()) ) {
++						visitorLabelRuleNames.put(pair.getKey(), r.getBaseContext());
++					}
+ 				}
+ 			}
+-			else {
+-				// if labels, must label all. no need for generic rule visitor then
+-				visitorNames.add(r.name);
+-			}
+ 		}
+ 		ActionAST ast = g.namedActions.get("header");
+ 		if ( ast!=null && ast.getScope()==null)
+@@ -60,4 +66,14 @@
+ 		accessLevel = g.getOptionString("accessLevel");
+ 		exportMacro = g.getOptionString("exportMacro");
+ 	}
++
++	/** True when some other rule's context class is this rule. */
++	private static boolean baseContextIsShared(Grammar g, String name) {
++		for (Rule other : g.rules.values()) {
++			if ( !other.name.equals(other.getBaseContext()) && name.equals(other.getBaseContext()) ) {
++				return true;
++			}
++		}
++		return false;
++	}
+ }
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/semantics/BasicSemanticChecks.java antlr4-tool-bc/org/antlr/v4/semantics/BasicSemanticChecks.java
+--- antlr4-tool-clean/org/antlr/v4/semantics/BasicSemanticChecks.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/semantics/BasicSemanticChecks.java	2026-11-09 18:06:54.296471885 +0100
+@@ -281,11 +281,16 @@
+ 				// in another rule. altLabelToRuleName has both X and x mapped.
+ 				String prevRuleForLabel = ruleCollector.altLabelToRuleName.get(altLabel);
+ 				if ( prevRuleForLabel!=null && !prevRuleForLabel.equals(rule.getRuleName()) ) {
+-					g.tool.errMgr.grammarError(ErrorType.ALT_LABEL_REDEF,
+-											   g.fileName, altAST.altLabel.token,
+-											   altLabel,
+-											   rule.getRuleName(),
+-											   prevRuleForLabel);
++					String prevBase = ruleCollector.rules.get(prevRuleForLabel).getBaseContext();
++					String currentBase = ruleCollector.rules.get(rule.getRuleName()).getBaseContext();
++					// The same alt label may be reused when both rules share a base context.
++					if ( !prevBase.equals(currentBase) ) {
++						g.tool.errMgr.grammarError(ErrorType.ALT_LABEL_REDEF,
++												   g.fileName, altAST.altLabel.token,
++												   altLabel,
++												   rule.getRuleName(),
++												   prevRuleForLabel);
++					}
+ 				}
+ 			}
+ 		}
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/semantics/SymbolChecks.java antlr4-tool-bc/org/antlr/v4/semantics/SymbolChecks.java
+--- antlr4-tool-clean/org/antlr/v4/semantics/SymbolChecks.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/semantics/SymbolChecks.java	2026-11-09 18:06:54.334176440 +0100
+@@ -206,7 +206,15 @@
+ 					labelPair.label.getText(),
+ 					labelPair.type + "!=" + prevLabelPair.type);
+ 		}
+-		if (!prevLabelPair.element.getText().equals(labelPair.element.getText()) &&
++		String prevElementText = prevLabelPair.element.getText();
++		String elementText = labelPair.element.getText();
++		if (labelPair.type.equals(LabelType.RULE_LABEL) || labelPair.type.equals(LabelType.RULE_LIST_LABEL)) {
++			Rule prevRule = g.getRule(prevElementText);
++			Rule elementRule = g.getRule(elementText);
++			if (prevRule != null) prevElementText = prevRule.getBaseContext();
++			if (elementRule != null) elementText = elementRule.getBaseContext();
++		}
++		if (!prevElementText.equals(elementText) &&
+ 			(prevLabelPair.type.equals(LabelType.RULE_LABEL) || prevLabelPair.type.equals(LabelType.RULE_LIST_LABEL)) &&
+ 			(labelPair.type.equals(LabelType.RULE_LABEL) || labelPair.type.equals(LabelType.RULE_LIST_LABEL))) {
+ 
+@@ -219,8 +227,8 @@
+ 					ErrorType.LABEL_TYPE_CONFLICT,
+ 					g.fileName,
+ 					token,
+-					labelPair.label.getText() + labelOp + labelPair.element.getText(),
+-					prevLabelPair.label.getText() + prevLabelOp + prevLabelPair.element.getText());
++					labelPair.label.getText() + labelOp + elementText,
++					prevLabelPair.label.getText() + prevLabelOp + prevElementText);
+ 		}
+ 	}
+ 
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/tool/Grammar.java antlr4-tool-bc/org/antlr/v4/tool/Grammar.java
+--- antlr4-tool-clean/org/antlr/v4/tool/Grammar.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/tool/Grammar.java	2026-11-09 18:06:54.302176130 +0100
+@@ -93,6 +93,11 @@
+ 	}
+ 
+ 	public static final Set<String> parseRuleOptions = new HashSet<>();
++	static {
++		// Groovy 3's Parrot grammar shares one context class across rules.
++		// Official ANTLR rejects that unless the tool knows this option.
++		parseRuleOptions.add("baseContext");
++	}
+ 
+ 	public static final Set<String> parserBlockOptions = new HashSet<String>();
+ 
+diff -ruN '--exclude=classes' '--exclude=sources.list' '--exclude=resources.list' '--exclude=*.jar' '--exclude=META-INF' antlr4-tool-clean/org/antlr/v4/tool/Rule.java antlr4-tool-bc/org/antlr/v4/tool/Rule.java
+--- antlr4-tool-clean/org/antlr/v4/tool/Rule.java	2024-08-03 18:42:08.000000000 +0200
++++ antlr4-tool-bc/org/antlr/v4/tool/Rule.java	2026-11-09 18:06:54.334176440 +0100
+@@ -53,6 +53,8 @@
+ 	}
+ 
+ 	public final String name;
++	/** Cached {@code options { baseContext = otherRule; }} target. */
++	private String baseContext;
+ 	public List<GrammarAST> modifiers;
+ 
+ 	public RuleAST ast;
+@@ -120,6 +122,24 @@
+ 		this.caseInsensitive = caseInsensitive;
+ 	}
+ 
++	/** Rule whose context class this rule's alternatives are generated into. */
++	public String getBaseContext() {
++		if (baseContext != null && !baseContext.isEmpty()) {
++			return baseContext;
++		}
++		if (ast != null) {
++			String optionBaseContext = ast.getOptionString("baseContext");
++			if (optionBaseContext != null && !optionBaseContext.isEmpty()) {
++				return optionBaseContext;
++			}
++		}
++		return name;
++	}
++
++	public void setBaseContext(String baseContext) {
++		this.baseContext = baseContext;
++	}
++
+ 	public void defineActionInAlt(int currentAlt, ActionAST actionAST) {
+ 		actions.add(actionAST);
+ 		alt[currentAlt].actions.add(actionAST);

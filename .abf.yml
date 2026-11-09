@@ -1,3 +1,4 @@
 sources:
   antlr4-4.13.2-sources.jar: abaf427f8b0dcaaddd7a5f79e54e9f84853fc4b3
   LICENSE.txt: da16483ce531bcf4c89e57cfaf901f02c284f51e
+  antlr4-4.13.2-basecontext.patch: 38f8a2955500aed9c422cebc47295464fb05710c
